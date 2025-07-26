@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cacheManager } from "@/lib/cache"
 import Link from "next/link"
-import DrugDetailsModal from "@/components/drug-details-modal"
+import EnhancedDrugDetailsModal from "@/components/enhanced-drug-details-modal"
 import WebsiteRatingSection from "@/components/website-rating-section"
 import AdvancedSearchFilters, { type SearchFilters } from "@/components/advanced-search-filters"
 import AnalyticsDashboard from "@/components/analytics-dashboard"
@@ -726,8 +726,8 @@ export default function DrugPricingApp() {
         {/* Website Rating Section */}
         <WebsiteRatingSection />
 
-        {/* Drug Details Modal */}
-        <DrugDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} drug={selectedDrug} />
+        {/* Enhanced Drug Details Modal */}
+        <EnhancedDrugDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} drug={selectedDrug} />
 
         {/* Performance Monitor */}
         <PerformanceMonitor />

@@ -105,7 +105,7 @@ export default function AdminPanel() {
     averageDiscountPercent: "",
   })
   const [saveMessage, setSaveMessage] = useState("")
-  const [activeTab, setActiveTab] = useState("drugs") // 'drugs' or 'pages' or 'ratings'
+  const [activeTab, setActiveTab] = useState("drugs") // 'drugs' or 'pages' or 'ratings' or 'data'
 
   // Pagination for admin drug list
   const [adminCurrentPage, setAdminCurrentPage] = useState(1)
@@ -701,6 +701,14 @@ export default function AdminPanel() {
           >
             <AlertTriangle className="ml-2 h-5 w-5" />
             إدارة النواقص
+          </Button>
+          <Button
+            variant="ghost"
+            className={`rounded-none border-b-2 flex-1 ${activeTab === "data" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-blue-600"}`}
+            onClick={() => setActiveTab("data")}
+          >
+            <Database className="ml-2 h-5 w-5" />
+            إدارة البيانات
           </Button>
         </div>
 
@@ -1882,6 +1890,62 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Data Management Tab */}
+        {activeTab === "data" && (
+          <div className="text-center py-12">
+            <Database className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">إدارة البيانات المتقدمة</h3>
+            <p className="text-gray-600 mb-8">
+              استخدم الصفحة المخصصة لإدارة البيانات لاستيراد وتصدير بيانات الأدوية وإدارة المعلومات التفصيلية
+            </p>
+            <Button
+              onClick={() => window.open('/admin-panel-secure/data-management', '_blank')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+            >
+              <Database className="ml-2 h-5 w-5" />
+              فتح صفحة إدارة البيانات
+            </Button>
+            
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <Card className="border-blue-200 hover:border-blue-400 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Database className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 mb-2">استيراد البيانات</h4>
+                  <p className="text-sm text-gray-600">
+                    استيراد بيانات الأدوية من ملفات JSON أو CSV
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 hover:border-green-400 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 mb-2">إدارة المعلومات</h4>
+                  <p className="text-sm text-gray-600">
+                    إضافة وتعديل المعلومات التفصيلية للأدوية
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-purple-200 hover:border-purple-400 transition-colors">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <RefreshCw className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 mb-2">المزامنة التلقائية</h4>
+                  <p className="text-sm text-gray-600">
+                    مزامنة البيانات من Firebase في الخلفية
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         )}
       </div>
     </div>
