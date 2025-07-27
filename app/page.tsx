@@ -23,12 +23,8 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cacheManager } from "@/lib/cache"
 import Link from "next/link"
-import EnhancedDrugDetailsModal from "@/components/enhanced-drug-details-modal"
+import DrugDetailsModal from "@/components/drug-details-modal"
 import WebsiteRatingSection from "@/components/website-rating-section"
-import AdvancedSearchFilters, { type SearchFilters } from "@/components/advanced-search-filters"
-import AnalyticsDashboard from "@/components/analytics-dashboard"
-import ExportTools from "@/components/export-tools"
-import PerformanceMonitor from "@/components/performance-monitor"
 import { shortageManager, type Shortage } from "@/lib/shortages"
 
 interface Drug {
@@ -61,16 +57,6 @@ export default function DrugPricingApp() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null)
   const [criticalShortagesCount, setCriticalShortagesCount] = useState(0)
-  const [showAnalytics, setShowAnalytics] = useState(false)
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    searchTerm: "",
-    priceRange: [0, 10000],
-    priceChangeFilter: "all",
-    hasDiscount: false,
-    discountRange: [0, 100],
-    sortBy: "original",
-    sortOrder: "asc"
-  })
 
   // Check online status
   useEffect(() => {
@@ -286,91 +272,38 @@ export default function DrugPricingApp() {
     fetchDrugsAndShortages()
   }, [])
 
-  // Update max price when drugs change
-  useEffect(() => {
-    if (drugs.length > 0) {
-      const maxPrice = Math.max(...drugs.map(d => d.newPrice))
-      setSearchFilters(prev => ({
-        ...prev,
-        priceRange: [0, Math.min(prev.priceRange[1], maxPrice)]
-      }))
-    }
-  }, [drugs])
-
-  // Advanced filtering and sorting with useMemo
+  // Optimized filtering and sorting with useMemo
   const filteredAndSortedDrugs = useMemo(() => {
+    if (!searchTerm && sortBy === "original") {
+      return drugs // Return original array if no filtering/sorting needed
+    }
+
     let filtered = drugs
 
-    // Apply search term filter
-    if (searchFilters.searchTerm || searchTerm) {
-      const searchLower = (searchFilters.searchTerm || searchTerm).toLowerCase()
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
       filtered = drugs.filter(
         (drug) => drug.name.toLowerCase().includes(searchLower) || drug.no.toLowerCase().includes(searchLower),
       )
     }
 
-    // Apply price range filter
-    if (searchFilters.priceRange[0] > 0 || searchFilters.priceRange[1] < 10000) {
-      filtered = filtered.filter(drug => 
-        drug.newPrice >= searchFilters.priceRange[0] && drug.newPrice <= searchFilters.priceRange[1]
-      )
-    }
-
-    // Apply price change filter
-    if (searchFilters.priceChangeFilter !== "all") {
-      switch (searchFilters.priceChangeFilter) {
-        case "increased":
-          filtered = filtered.filter(drug => drug.priceChange > 0)
-          break
-        case "decreased":
-          filtered = filtered.filter(drug => drug.priceChange < 0)
-          break
-        case "unchanged":
-          filtered = filtered.filter(drug => drug.priceChange === 0)
-          break
-      }
-    }
-
-    // Apply discount filter
-    if (searchFilters.hasDiscount) {
-      filtered = filtered.filter(drug => {
-        if (!drug.averageDiscountPercent || drug.averageDiscountPercent <= 0) return false
-        return drug.averageDiscountPercent >= searchFilters.discountRange[0] && 
-               drug.averageDiscountPercent <= searchFilters.discountRange[1]
-      })
-    }
-
-    // Apply sorting
-    const currentSortBy = searchFilters.sortBy !== "original" ? searchFilters.sortBy : sortBy
-    if (currentSortBy !== "original") {
+    if (sortBy !== "original") {
       filtered = [...filtered].sort((a, b) => {
-        let comparison = 0
-        
-        switch (currentSortBy) {
+        switch (sortBy) {
           case "price":
-            comparison = a.newPrice - b.newPrice
-            break
+            return a.newPrice - b.newPrice
           case "change":
-            comparison = a.priceChangePercent - b.priceChangePercent
-            break
+            return Math.abs(b.priceChangePercent) - Math.abs(a.priceChangePercent)
           case "name":
-            comparison = a.name.localeCompare(b.name, "ar")
-            break
-          case "discount":
-            const aDiscount = a.averageDiscountPercent || 0
-            const bDiscount = b.averageDiscountPercent || 0
-            comparison = aDiscount - bDiscount
-            break
+            return a.name.localeCompare(b.name, "ar")
           default:
-            comparison = a.originalOrder - b.originalOrder
+            return a.originalOrder - b.originalOrder
         }
-
-        return searchFilters.sortOrder === "desc" ? -comparison : comparison
       })
     }
 
     return filtered
-  }, [drugs, searchTerm, sortBy, searchFilters])
+  }, [drugs, searchTerm, sortBy])
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedDrugs.length / ITEMS_PER_PAGE)
@@ -524,62 +457,57 @@ export default function DrugPricingApp() {
           </Alert>
         )}
 
-        {/* Enhanced Search and Filters */}
-        <div className="mb-6">
-          <AdvancedSearchFilters
-            filters={searchFilters}
-            onFiltersChange={(filters) => {
-              setSearchFilters(filters)
-              setCurrentPage(1)
-            }}
-            drugCount={filteredAndSortedDrugs.length}
-            maxPrice={drugs.length > 0 ? Math.max(...drugs.map(d => d.newPrice)) : 1000}
-          />
-        </div>
-
-        {/* Quick Actions */}
+        {/* Controls */}
         <Card className="mb-6 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowAnalytics(!showAnalytics)}
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-200 hover:bg-blue-50"
-                >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  {showAnalytics ? "إخفاء التحليلات" : "عرض التحليلات"}
-                </Button>
-                
-                <Button
-                  onClick={() => {
-                    cacheManager.clear()
-                    fetchDrugsAndShortages(true)
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-200 hover:bg-blue-50 bg-transparent"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                  تحديث
-                </Button>
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="البحث بالاسم أو رقم الدواء..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                    dir="rtl"
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <ExportTools drugs={drugs} filteredDrugs={filteredAndSortedDrugs} />
-              </div>
+              <Select
+                value={sortBy}
+                onValueChange={(value: "original" | "name" | "price" | "change") => setSortBy(value)}
+              >
+                <SelectTrigger className="w-48 border-gray-200 focus:border-blue-400 focus:ring-blue-400">
+                  <SelectValue placeholder="ترتيب حسب" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="original">الترتيب الأصلي</SelectItem>
+                  <SelectItem value="name">الاسم أ-ي</SelectItem>
+                  <SelectItem value="price">السعر من الأقل</SelectItem>
+                  <SelectItem value="change">تغيير السعر</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                onClick={() => {
+                  cacheManager.clear()
+                  fetchDrugsAndShortages(true)
+                }}
+                variant="outline"
+                size="sm"
+                className="border-gray-200 hover:bg-blue-50 bg-transparent"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* Analytics Dashboard */}
-        {showAnalytics && (
-          <div className="mb-6">
-            <AnalyticsDashboard drugs={drugs} criticalShortagesCount={criticalShortagesCount} />
-          </div>
-        )}
 
         {/* Results Summary */}
         <div className="mb-4 flex items-center justify-between">
@@ -726,11 +654,8 @@ export default function DrugPricingApp() {
         {/* Website Rating Section */}
         <WebsiteRatingSection />
 
-        {/* Enhanced Drug Details Modal */}
-        <EnhancedDrugDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} drug={selectedDrug} />
-
-        {/* Performance Monitor */}
-        <PerformanceMonitor />
+        {/* Drug Details Modal */}
+        <DrugDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} drug={selectedDrug} />
       </div>
     </div>
   )

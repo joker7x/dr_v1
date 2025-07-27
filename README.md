@@ -1,249 +1,30 @@
-# دليل أسعار الأدوية المصرية | Egyptian Drug Pricing App
+# Real-time drug pricing app
 
-A comprehensive, real-time drug pricing application for the Egyptian market with advanced analytics, PWA support, and data export capabilities.
+*Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/wagihm62-2280s-projects/v0-real-time-drug-pricing-app)
-[![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/cED9lMk96pD)
 
-## ✨ Enhanced Features
+## Overview
 
-### 🔍 Advanced Search & Filtering
-- **Smart Search**: Search by drug name or ID with instant results
-- **Price Range Filtering**: Filter drugs by price range with interactive sliders
-- **Price Change Filters**: Show only drugs with price increases, decreases, or no change
-- **Discount Filtering**: Filter drugs by discount percentage
-- **Multi-criteria Sorting**: Sort by name, price, change percentage, or discount
+This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
+Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
 
-### 📊 Analytics Dashboard
-- **Price Distribution Charts**: Visual representation of drug price ranges
-- **Price Change Analytics**: Pie charts showing price change patterns
-- **Top Movers**: Lists of drugs with highest price increases/decreases
-- **Statistical Summary**: Average prices, medians, and key metrics
-- **Shortage Tracking**: Critical drug shortage monitoring
+## Deployment
 
-### 📱 Progressive Web App (PWA)
-- **Installable**: Add to home screen on mobile and desktop
-- **Offline Support**: Browse cached data when offline
-- **Background Updates**: Automatic data syncing
-- **Push Notifications**: Get notified about critical shortages (future)
-- **App Shortcuts**: Quick access to search, shortages, and analytics
+Your project is live at:
 
-### 📤 Data Export & Sharing
-- **PDF Export**: Generate professional drug price reports
-- **Excel/CSV Export**: Export filtered data for further analysis
-- **Print Support**: Optimized printing layouts
-- **Share Functionality**: Share data via native sharing APIs
-- **Custom Reports**: Include statistics and charts in exports
+**[https://vercel.com/wagihm62-2280s-projects/v0-real-time-drug-pricing-app](https://vercel.com/wagihm62-2280s-projects/v0-real-time-drug-pricing-app)**
 
-### 🚀 Performance Enhancements
-- **Optimized Filtering**: Efficient multi-criteria filtering algorithms
-- **Virtual Scrolling**: Handle large datasets smoothly
-- **Smart Caching**: Intelligent data caching strategies
-- **Performance Monitoring**: Real-time performance metrics (dev mode)
-- **Error Boundaries**: Comprehensive error handling and recovery
+## Build your app
 
-### 🎨 Enhanced UI/UX
-- **RTL Support**: Full Arabic language and layout support
-- **Responsive Design**: Optimized for all screen sizes
-- **Dark/Light Themes**: System preference detection
-- **Accessibility**: WCAG compliant interface
-- **Toast Notifications**: User-friendly feedback system
+Continue building your app on:
 
-## 🛠 Technology Stack
+**[https://v0.dev/chat/projects/cED9lMk96pD](https://v0.dev/chat/projects/cED9lMk96pD)**
 
-- **Framework**: Next.js 15.2.4 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Charts**: Recharts for data visualization
-- **PDF Generation**: jsPDF + jsPDF-AutoTable
-- **PWA**: next-pwa for offline support
-- **State Management**: React hooks with optimized updates
-- **Caching**: Custom cache management system
+## How It Works
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+ 
-- npm or pnpm
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd drug-pricing-app
-
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Start development server
-npm run dev
-```
-
-### Environment Setup
-
-The app connects to Firebase Realtime Database. Ensure your database structure matches:
-
-```json
-{
-  "drugs": {
-    "1": {
-      "name": "Drug Name",
-      "newPrice": 100.50,
-      "oldPrice": 95.00,
-      "no": "1",
-      "updateDate": "2024-01-15",
-      "averageDiscountPercent": 5.5
-    }
-  },
-  "shortages": {
-    "id": {
-      "drugName": "Drug Name",
-      "status": "critical",
-      "reason": "Supply chain issues",
-      "reportDate": "2024-01-15T10:00:00Z"
-    }
-  }
-}
-```
-
-## 📱 PWA Installation
-
-### Mobile (Android/iOS)
-1. Open the app in your mobile browser
-2. Tap the browser menu
-3. Select "Add to Home Screen" or "Install App"
-4. Confirm installation
-
-### Desktop (Chrome/Edge)
-1. Visit the app URL
-2. Click the install icon in the address bar
-3. Click "Install" in the popup
-
-## 📊 Analytics Features
-
-### Price Distribution
-- Bar charts showing drug count by price ranges
-- Interactive tooltips with detailed information
-- Color-coded ranges for easy identification
-
-### Trend Analysis
-- Price change pie charts
-- Top gaining and losing drugs
-- Historical price movement tracking
-
-### Statistics Dashboard
-- Total drug count
-- Average and median prices
-- Discount percentages
-- Critical shortage alerts
-
-## 📤 Export Options
-
-### PDF Reports
-- Professional formatting with Arabic support
-- Include statistics and drug listings
-- Customizable report content
-- Print-optimized layouts
-
-### Excel/CSV Export
-- Full data export with proper encoding
-- Arabic text support with BOM
-- Customizable column selection
-- Compatible with Excel and Google Sheets
-
-## 🔧 Performance Features
-
-### Optimization
-- React.memo for component optimization
-- useMemo for expensive calculations
-- Debounced search inputs
-- Lazy loading for charts and exports
-
-### Monitoring
-- Real-time performance metrics
-- API response time tracking
-- Cache hit rate monitoring
-- Error boundary protection
-
-## 🌐 Deployment
-
-### Vercel (Recommended)
-```bash
-# Deploy to Vercel
-npm run build
-npx vercel --prod
-```
-
-### Manual Build
-```bash
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-If you encounter any issues:
-
-1. Check the error boundary for detailed error information
-2. Clear browser cache and localStorage
-3. Reload the application
-4. Report bugs through the error reporting system
-
-## 🔮 Future Enhancements
-
-- [ ] Real-time price alerts
-- [ ] Drug comparison tool
-- [ ] Pharmacy location finder
-- [ ] Medicine interaction checker
-- [ ] Prescription management
-- [ ] Multi-language support
-- [ ] API for third-party integrations
-
-## 🆕 Latest Updates
-
-### ✨ **Advanced Data Management System**
-- **Admin-controlled data import** from JSON/CSV files
-- **Background synchronization** from Firebase
-- **Detailed drug information** management
-- **Enhanced drug details modal** with comprehensive information
-
-### 🔧 **Admin Panel Enhancements**
-- **New Data Management Tab** in admin panel
-- **File upload system** for bulk data import
-- **Drug information editor** with rich details
-- **Export functionality** for backup and migration
-
-### 📱 **Enhanced User Experience**
-- **Detailed drug information** instead of ratings
-- **Drug categories and manufacturers** display
-- **Dosage and side effects** information
-- **Storage conditions and warnings**
-- **Pharmacy notes and location finder**
-- **Favorites system** for drug bookmarking
-
-### 🛠 **Technical Improvements**
-- **Enhanced data structure** with detailed drug information
-- **Improved admin workflow** for data management
-- **Better error handling** and validation
-- **Optimized performance** for large datasets
-
----
-
-**Note**: This application provides drug pricing information for educational and informational purposes. Always consult healthcare professionals for medical advice.## Latest GitHub Push - Sat Jul 26 04:11:05 PM UTC 2025
+1. Create and modify your project using [v0.dev](https://v0.dev)
+2. Deploy your chats from the v0 interface
+3. Changes are automatically pushed to this repository
+4. Vercel deploys the latest version from this repository
