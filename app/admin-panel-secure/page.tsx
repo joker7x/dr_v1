@@ -66,6 +66,9 @@ interface Drug {
   updateDate: string
   activeIngredient?: string
   averageDiscountPercent?: number
+  isDeleted?: boolean
+  deletedDate?: string
+  deletedBy?: string
 }
 
 interface AboutPageContent {
@@ -169,6 +172,10 @@ export default function AdminPanel() {
   const [isImporting, setIsImporting] = useState(false)
   const [commandInput, setCommandInput] = useState("")
   const [commandResult, setCommandResult] = useState<{ success: boolean; message: string; data?: any } | null>(null)
+  
+  // URL Import functionality
+  const [urlImportInput, setUrlImportInput] = useState("")
+  const [isUrlImporting, setIsUrlImporting] = useState(false)
 
   useEffect(() => {
     setIsAuthenticated(authManager.isAuthenticated())
@@ -205,31 +212,30 @@ export default function AdminPanel() {
   const fetchDrugs = async () => {
     setLoading(true)
     try {
-      const response = await fetch("https://dwalast-default-rtdb.firebaseio.com/drugs.json")
+      const response = await fetch("/api/drugs")
       if (!response.ok) throw new Error("فشل في تحميل البيانات")
 
       const data = await response.json()
-      if (data) {
-        const drugsArray = Object.entries(data)
-          .filter(([key]) => !isNaN(Number(key)))
-          .map(([key, drug]: [string, any]) => ({
-            id: key,
-            name: drug.name || "",
-            newPrice: Number.parseFloat(drug.newPrice) || 0,
-            oldPrice: Number.parseFloat(drug.oldPrice) || 0,
-            no: drug.no || key,
-            updateDate: drug.updateDate || "",
-            activeIngredient: drug.activeIngredient || "",
-            averageDiscountPercent: drug.averageDiscountPercent
-              ? Number.parseFloat(drug.averageDiscountPercent)
-              : undefined,
-          }))
-          .sort((a, b) => Number(a.id) - Number(b.id))
+      if (data && data.drugs) {
+        const drugsArray = data.drugs.map((drug: any) => ({
+          id: drug.id,
+          name: drug.name || "",
+          newPrice: Number.parseFloat(drug.newPrice) || 0,
+          oldPrice: Number.parseFloat(drug.oldPrice) || 0,
+          no: drug.no || drug.id,
+          updateDate: drug.updateDate || "",
+          activeIngredient: drug.activeIngredient || "",
+          averageDiscountPercent: drug.averageDiscountPercent
+            ? Number.parseFloat(drug.averageDiscountPercent)
+            : undefined,
+        }))
 
         setDrugs(drugsArray)
       }
     } catch (error) {
       console.error("Error fetching drugs:", error)
+      setSaveMessage("فشل في تحميل البيانات")
+      setTimeout(() => setSaveMessage(""), 3000)
     } finally {
       setLoading(false)
     }
@@ -283,33 +289,26 @@ export default function AdminPanel() {
     }
   }
 
-  const saveDrugToFirebase = async (drugData: any, drugId?: string) => {
+  const saveDrugToLocal = async (drugData: any, drugId?: string) => {
     try {
-      const url = drugId
-        ? `https://dwalast-default-rtdb.firebaseio.com/drugs/${drugId}.json`
-        : `https://dwalast-default-rtdb.firebaseio.com/drugs/${getNextId()}.json`
-
-      const response = await fetch(url, {
-        method: "PUT",
+      const action = drugId ? 'update' : 'add'
+      const response = await fetch("/api/drugs", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...drugData,
-          updateDate: new Date().toLocaleDateString("ar-EG"),
-          activeIngredient: drugData.activeIngredient || undefined,
-          averageDiscountPercent: drugData.averageDiscountPercent
-            ? Number.parseFloat(drugData.averageDiscountPercent)
-            : undefined,
+          action,
+          drug: {
+            ...drugData,
+            activeIngredient: drugData.activeIngredient || "",
+            averageDiscountPercent: drugData.averageDiscountPercent
+              ? Number.parseFloat(drugData.averageDiscountPercent)
+              : undefined,
+          },
+          drugId
         }),
       })
 
       if (!response.ok) throw new Error("فشل في حفظ البيانات")
-
-      // Update global updateDate
-      await fetch("https://dwalast-default-rtdb.firebaseio.com/drugs/updateDate.json", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(new Date().toLocaleDateString("ar-EG")),
-      })
 
       // Clear cache to force refresh
       cacheManager.clear()
@@ -337,13 +336,20 @@ export default function AdminPanel() {
     }
   }
 
-  const deleteDrugFromFirebase = async (drugId: string) => {
+  const deleteDrugFromLocal = async (drugId: string) => {
     try {
-      const response = await fetch(`https://dwalast-default-rtdb.firebaseio.com/drugs/${drugId}.json`, {
-        method: "DELETE",
+      const response = await fetch("/api/drugs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: 'delete',
+          drugId
+        }),
       })
 
-      if (!response.ok) throw new Error("فشل في حذف البيانات")
+      if (!response.ok) {
+        throw new Error("فشل في حذف الدواء")
+      }
 
       // Clear cache to force refresh
       cacheManager.clear()
@@ -351,7 +357,7 @@ export default function AdminPanel() {
       return true
     } catch (error) {
       console.error("Error deleting drug:", error)
-      return false
+      throw error
     }
   }
 
@@ -368,7 +374,7 @@ export default function AdminPanel() {
   const handleSaveEdit = async () => {
     if (!editingDrug) return
 
-    const success = await saveDrugToFirebase(
+    const success = await saveDrugToLocal(
       {
         name: editingDrug.name,
         newPrice: editingDrug.newPrice.toString(),
@@ -402,7 +408,7 @@ export default function AdminPanel() {
       return
     }
 
-    const success = await saveDrugToFirebase({
+    const success = await saveDrugToLocal({
       name: newDrug.name,
       newPrice: newDrug.newPrice,
       oldPrice: newDrug.oldPrice,
@@ -427,20 +433,17 @@ export default function AdminPanel() {
     if (!confirm("هل أنت متأكد من حذف هذا الدواء؟")) return
 
     try {
-      const success = await deleteDrugFromFirebase(drugId)
+      const success = await deleteDrugFromLocal(drugId)
       if (success) {
         // Remove from local storage
         localDataManager.deleteDrug(drugId)
-        // Update state immediately
-        setDrugs(prev => prev.filter(drug => drug.id !== drugId))
         setSaveMessage("تم حذف الدواء بنجاح")
-        await fetchDrugs() // Full sync
-      } else {
-        setSaveMessage("فشل حذف الدواء")
+        await fetchDrugs() // Refresh the list
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Delete drug error:", error)
-      setSaveMessage("فشل حذف الدواء")
+      const errorMessage = error.message || "فشل حذف الدواء - خطأ غير معروف"
+      setSaveMessage(errorMessage)
     }
     setTimeout(() => setSaveMessage(""), 3000)
   }
@@ -644,7 +647,7 @@ export default function AdminPanel() {
 
         // Save to Firebase
         for (const drug of validDrugs) {
-          await saveDrugToFirebase(drug, drug.id)
+          await saveDrugToLocal(drug, drug.id)
         }
 
         // Update state
@@ -672,6 +675,119 @@ export default function AdminPanel() {
     event.target.value = "" // Reset file input
   }
 
+  const importFromUrl = async () => {
+    if (!urlImportInput.trim()) {
+      setDataMessage({ type: "error", text: "الرجاء إدخال رابط صحيح" })
+      setTimeout(() => setDataMessage(null), 3000)
+      return
+    }
+
+    setIsUrlImporting(true)
+    try {
+      // Validate URL format
+      let url = urlImportInput.trim()
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url
+      }
+
+      // For Firebase URLs, ensure they end with .json
+      if (url.includes('firebase') && !url.endsWith('.json')) {
+        url += '.json'
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`فشل في تحميل البيانات من الرابط: ${response.status}`)
+      }
+
+      const importedData = await response.json()
+
+      // Handle different data formats
+      let drugsToImport = []
+
+      // Check if it's Firebase format (object with numeric keys)
+      if (importedData && typeof importedData === 'object' && !Array.isArray(importedData)) {
+        // Check if it has a drugs array (our local format)
+        if (importedData.drugs && Array.isArray(importedData.drugs)) {
+          drugsToImport = importedData.drugs
+        } else {
+          // Firebase format - convert object to array
+          const numericKeys = Object.keys(importedData)
+            .filter(key => !isNaN(Number(key)) && importedData[key] && typeof importedData[key] === 'object')
+            .sort((a, b) => Number(a) - Number(b))
+
+          drugsToImport = numericKeys.map(key => ({
+            id: key,
+            ...importedData[key]
+          }))
+        }
+      } else if (Array.isArray(importedData)) {
+        // Direct array format
+        drugsToImport = importedData
+      } else {
+        throw new Error("تنسيق البيانات غير مدعوم")
+      }
+
+      // Validate and process imported drugs
+      const validDrugs = drugsToImport.filter((drug: any) =>
+        drug && drug.name && (drug.newPrice || drug.oldPrice) && drug.no
+      ).map((drug: any, index: number) => ({
+        id: drug.id || (index + 1).toString(),
+        name: drug.name || "",
+        newPrice: Number.parseFloat(drug.newPrice) || 0,
+        oldPrice: Number.parseFloat(drug.oldPrice) || 0,
+        no: drug.no || (index + 1).toString(),
+        updateDate: drug.updateDate || new Date().toLocaleDateString("ar-EG"),
+        activeIngredient: drug.activeIngredient || "",
+        averageDiscountPercent: drug.averageDiscountPercent
+          ? Number.parseFloat(drug.averageDiscountPercent)
+          : undefined,
+      }))
+
+      if (validDrugs.length === 0) {
+        throw new Error("لا توجد بيانات أدوية صحيحة في الرابط")
+      }
+
+      // Save to local storage
+      localDataManager.saveDrugs(validDrugs)
+
+      // Save to local JSON file via API
+      for (const drug of validDrugs) {
+        await saveDrugToLocal(drug, drug.id)
+      }
+
+      // Update state
+      setDrugs(validDrugs)
+      
+      // Refresh data
+      await fetchDrugs()
+      
+      setDataMessage({
+        type: "success",
+        text: `تم استيراد ${validDrugs.length} دواء بنجاح من الرابط`
+      })
+
+      // Clear the input
+      setUrlImportInput("")
+
+    } catch (error: any) {
+      console.error("URL Import error:", error)
+      setDataMessage({
+        type: "error",
+        text: error.message || "فشل في استيراد البيانات من الرابط"
+      })
+    }
+    setIsUrlImporting(false)
+    setTimeout(() => setDataMessage(null), 5000)
+  }
+
   const deleteAllData = async () => {
     if (!confirm("هل أنت متأكد من حذف جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه.")) {
       return
@@ -681,7 +797,7 @@ export default function AdminPanel() {
       // Delete all drugs from Firebase
       for (const drug of drugs) {
         try {
-          await deleteDrugFromFirebase(drug.id)
+          await deleteDrugFromLocal(drug.id)
         } catch (error) {
           console.error(`Failed to delete drug ${drug.id}:`, error)
         }
@@ -740,9 +856,21 @@ export default function AdminPanel() {
         }
       }
 
-      // Also save to local storage
-      localDataManager.saveDrugs(drugs)
-      localDataManager.saveShortages(shortages)
+      // Try to save to local storage with error handling
+      try {
+        // Clear localStorage first to make space
+        localDataManager.clearAllData()
+        
+        // Save with size management
+        const saveResult = localDataManager.saveDrugs(drugs.slice(0, 500)) // Limit to 500 drugs for localStorage
+        if (saveResult) {
+          localDataManager.saveShortages(shortages.slice(0, 100)) // Limit to 100 shortages
+          console.log("Successfully saved limited data to localStorage")
+        }
+      } catch (localStorageError) {
+        console.warn("Could not save to localStorage:", localStorageError)
+        // Continue with file backup even if localStorage fails
+      }
 
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" })
       const url = URL.createObjectURL(blob)
@@ -1783,7 +1911,7 @@ export default function AdminPanel() {
                                   </Badge>
                                 )}
                                 {rating.isVerified && (
-                                  <Verified className="h-4 w-4 text-blue-500 fill-blue-500" title="موثق" />
+                                  <Verified className="h-4 w-4 text-blue-500 fill-blue-500" />
                                 )}
                               </div>
                               <div className="text-xs text-gray-500" dir="rtl">
@@ -1891,7 +2019,7 @@ export default function AdminPanel() {
                                   </Badge>
                                 )}
                                 {rating.isVerified && (
-                                  <Verified className="h-4 w-4 text-blue-500 fill-blue-500" title="موثق" />
+                                  <Verified className="h-4 w-4 text-blue-500 fill-blue-500" />
                                 )}
                               </div>
                               <div className="text-xs text-gray-500" dir="rtl">
@@ -2343,12 +2471,12 @@ export default function AdminPanel() {
                 </CardContent>
               </Card>
 
-              {/* Import Data */}
+              {/* Import Data from File */}
               <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <Upload className="h-5 w-5 text-green-600" />
-                    استيراد البيانات
+                    استيراد من ملف
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -2363,7 +2491,7 @@ export default function AdminPanel() {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       disabled={isImporting}
                     />
-                    <Button 
+                    <Button
                       disabled={isImporting}
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                     >
@@ -2379,6 +2507,56 @@ export default function AdminPanel() {
                         </>
                       )}
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Import Data from URL */}
+              <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Download className="h-5 w-5 text-orange-600" />
+                    استيراد من رابط
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 text-sm mb-4">
+                    استيراد بيانات الأدوية من رابط Firebase أو أي رابط JSON
+                  </p>
+                  <div className="space-y-3">
+                    <Input
+                      value={urlImportInput}
+                      onChange={(e) => setUrlImportInput(e.target.value)}
+                      placeholder="https://dwalast-default-rtdb.firebaseio.com/drugs.json"
+                      className="w-full"
+                      disabled={isUrlImporting}
+                      dir="ltr"
+                    />
+                    <Button
+                      onClick={importFromUrl}
+                      disabled={isUrlImporting || !urlImportInput.trim()}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      {isUrlImporting ? (
+                        <>
+                          <RefreshCw className="ml-2 h-4 w-4 animate-spin" />
+                          جاري الاستيراد من الرابط...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="ml-2 h-4 w-4" />
+                          استيراد من الرابط
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-500">
+                    <p className="font-medium mb-1">أمثلة على الروابط المدعومة:</p>
+                    <ul className="space-y-1">
+                      <li>• Firebase: https://project.firebaseio.com/drugs.json</li>
+                      <li>• JSON API: https://api.example.com/drugs</li>
+                      <li>• ملف JSON مباشر: https://example.com/data.json</li>
+                    </ul>
                   </div>
                 </CardContent>
               </Card>

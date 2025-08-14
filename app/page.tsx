@@ -166,7 +166,7 @@ export default function DrugPricingApp() {
 
       // Parallel fetch
       const [drugsResponse, shortagesResponse] = await Promise.all([
-        fetch("https://dwalast-default-rtdb.firebaseio.com/drugs.json", {
+        fetch("/api/drugs", {
           signal: controller.signal,
           headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         }),
@@ -195,24 +195,27 @@ export default function DrugPricingApp() {
         throw new Error("لم يتم العثور على بيانات أدوية صحيحة")
       }
 
+      // Handle new API format
       const globalUpdateDate = drugsData.updateDate || ""
       setLastUpdated(globalUpdateDate)
 
-      // Optimized processing - filter and process in one pass
-      const drugsArray: Drug[] = []
-      const numericKeys = Object.keys(drugsData)
-        .filter((key) => !isNaN(Number(key)))
-        .sort((a, b) => Number(a) - Number(b))
+      // Get drugs array from the new API format
+      const drugsArrayFromAPI = drugsData.drugs || []
+      
+      if (!Array.isArray(drugsArrayFromAPI)) {
+        throw new Error("تنسيق البيانات غير صحيح")
+      }
 
+      // Process drugs array directly
+      const drugsArray: Drug[] = []
       let processedCount = 0
 
-      for (let i = 0; i < numericKeys.length; i++) {
-        const key = numericKeys[i]
-        const drugData = drugsData[key]
+      for (let i = 0; i < drugsArrayFromAPI.length; i++) {
+        const drugData = drugsArrayFromAPI[i]
 
         if (isValidDrug(drugData)) {
           try {
-            const processedDrug = processDrug(drugData, key, processedCount)
+            const processedDrug = processDrug(drugData, drugData.id || i.toString(), processedCount)
             drugsArray.push(processedDrug)
             processedCount++
           } catch {

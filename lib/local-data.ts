@@ -29,7 +29,7 @@ const LOCAL_STORAGE_KEY = "local_drugs_data"
 const DATA_VERSION = "1.0.0"
 
 export const localDataManager = {
-  // Save data to local storage
+  // Save data to local storage with size management
   saveData: (data: LocalData) => {
     try {
       const dataToSave = {
@@ -37,11 +37,47 @@ export const localDataManager = {
         version: DATA_VERSION,
         lastUpdated: new Date().toISOString(),
       }
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave))
+      
+      const dataString = JSON.stringify(dataToSave)
+      const dataSize = new Blob([dataString]).size
+      
+      // Check if data size exceeds 4MB (localStorage limit is usually 5-10MB)
+      if (dataSize > 4 * 1024 * 1024) {
+        console.warn("Data size exceeds safe localStorage limit, truncating...")
+        
+        // Try to save with reduced data
+        const reducedData = {
+          ...dataToSave,
+          drugs: dataToSave.drugs.slice(0, Math.floor(dataToSave.drugs.length * 0.8)), // Keep 80% of drugs
+          shortages: dataToSave.shortages.slice(0, Math.floor(dataToSave.shortages.length * 0.8)) // Keep 80% of shortages
+        }
+        
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reducedData))
+        console.warn(`Saved reduced dataset: ${reducedData.drugs.length} drugs, ${reducedData.shortages.length} shortages`)
+        return true
+      }
+      
+      localStorage.setItem(LOCAL_STORAGE_KEY, dataString)
       return true
     } catch (error) {
       console.error("Failed to save local data:", error)
-      return false
+      
+      // Try to clear some space and retry with minimal data
+      try {
+        const minimalData = {
+          drugs: data.drugs.slice(0, 100), // Keep only first 100 drugs
+          shortages: data.shortages.slice(0, 50), // Keep only first 50 shortages
+          lastUpdated: new Date().toISOString(),
+          version: DATA_VERSION,
+        }
+        
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(minimalData))
+        console.warn("Saved minimal dataset due to storage constraints")
+        return true
+      } catch (retryError) {
+        console.error("Failed to save even minimal data:", retryError)
+        return false
+      }
     }
   },
 

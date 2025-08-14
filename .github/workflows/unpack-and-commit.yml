@@ -1,0 +1,56 @@
+name: Unpack uploaded zip and commit to root
+
+on:
+  push:
+    paths:
+      - 'uploads/*.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  unpack-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pick latest uploaded zip
+        shell: bash
+        run: |
+          set -e
+          ls -l uploads || true
+          ZIP_FILE=$(ls -t uploads/*.zip | head -n 1)
+          echo "Using zip: $ZIP_FILE"
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
+
+      - name: Unzip archive to temp
+        run: |
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y unzip >/dev/null 2>&1 || true
+          rm -rf unpacked
+          mkdir -p unpacked
+          unzip -o "$ZIP_FILE" -d unpacked
+
+      - name: Copy contents to repo root (preserve .github and uploads)
+        run: |
+          sudo apt-get install -y rsync >/dev/null 2>&1 || true
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='uploads' \
+            unpacked/ ./
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Unpack archive to root [ci skip]"
+            git push
+          fi

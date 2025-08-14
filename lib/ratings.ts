@@ -89,7 +89,7 @@ export const getProductRatings = async (drugId: string): Promise<ProductRating[]
     if (!data) return []
 
     return Object.entries(data).map(([id, rating]: [string, any]) => ({
-      id,
+      id: id,
       drugId,
       ...rating,
     })) as ProductRating[]
@@ -132,7 +132,7 @@ export const getWebsiteRatings = async (): Promise<WebsiteRating[]> => {
     if (!data) return []
 
     return Object.entries(data).map(([id, rating]: [string, any]) => ({
-      id,
+      id: id,
       ...rating,
     })) as WebsiteRating[]
   } catch (error) {
